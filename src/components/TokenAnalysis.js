@@ -141,4 +141,4 @@ const TokenAnalysis = ({ tokenAddress, onAskMore }) => {
               <h4 className="text-rugai-green font-semibold">Liquidity Status</h4>
               <Tooltip content="Information about locked liquidity, which helps prevent rug pulls" />
             </div>
-           
+           </motion.dev>
