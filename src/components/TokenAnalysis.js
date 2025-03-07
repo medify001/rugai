@@ -1,14 +1,20 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
 import { motion } from 'framer-motion';
-import { 
-  CheckCircleIcon, 
-  XCircleIcon, 
-  ExclamationTriangleIcon, 
-  ChartBarIcon, 
-  LockClosedIcon, 
+import {
+  CheckCircleIcon,
+  XCircleIcon,
+  ExclamationTriangleIcon,
+  ChartBarIcon,
+  LockClosedIcon,
   UserGroupIcon,
   QuestionMarkCircleIcon
 } from '@heroicons/react/24/solid';
+
+const API_URL = "https://solsniffer.com/api/v2/";
+const API_KEY = "l15c0fdektmp9hxp2ayx45sbwe3g7k";
+
+
 
 const Tooltip = ({ content }) => (
   <div className="group relative inline-block">
@@ -27,12 +33,12 @@ const SecurityIndicator = ({ status, message, score }) => {
     danger: { Icon: XCircleIcon, color: 'text-red-500' },
   };
 
-  const { Icon, color } = icons[status];
+  const { Icon, color } = icons[status] || {};
 
   return (
     <div className="flex items-center justify-between">
       <div className="flex items-center space-x-2">
-        <Icon className={`h-5 w-5 ${color}`} />
+        {Icon && <Icon className={`h-5 w-5 ${color}`} />}
         <span className="text-white">{message}</span>
       </div>
       {score !== undefined && (
@@ -42,10 +48,48 @@ const SecurityIndicator = ({ status, message, score }) => {
   );
 };
 
-const TokenAnalysis = ({ analysis, onAskMore }) => {
+const TokenAnalysis = ({ tokenAddress, onAskMore }) => {
+  const [analysis, setAnalysis] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchAnalysis = async () => {
+      try {
+        const response = await axios.get(`https://api.solsniffer.com/v2/token/${tokenAddress}`, {
+          headers: {
+            'X_API': `l15c0fdektmp9hxp2ayx45sbwe3g7k`, // Replace with your actual API key
+          },
+        });
+        setAnalysis(response.data);
+      } catch (err) {
+        setError('Failed to fetch token analysis.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAnalysis();
+  }, [tokenAddress]);
+
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div>{error}</div>;
   if (!analysis) return null;
 
-  const riskScore = Math.floor(Math.random() * 100);
+  const {
+    snifscore,
+    market_cap,
+    volume_24h,
+    holders_count,
+    liquidity_locked,
+    lock_duration_days,
+    dev_holdings_percentage,
+    top_holders,
+    transactions,
+    contract_audited,
+    overall_risk,
+    risk_message,
+  } = analysis;
 
   return (
     <motion.div
@@ -56,11 +100,11 @@ const TokenAnalysis = ({ analysis, onAskMore }) => {
       <div className="flex justify-between items-center mb-6">
         <h3 className="text-xl font-bold text-white">Security Analysis Results</h3>
         <div className="text-right">
-          <div className="text-3xl font-bold text-rugai-green">{riskScore}</div>
+          <div className="text-3xl font-bold text-rugai-green">{snifscore}</div>
           <div className="text-sm text-gray-400">Risk Score</div>
         </div>
       </div>
-      
+
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-rugai-gray-light p-4 rounded-lg">
@@ -75,18 +119,18 @@ const TokenAnalysis = ({ analysis, onAskMore }) => {
                   <span className="text-gray-400">Market Cap</span>
                   <Tooltip content="Total value of all tokens in circulation" />
                 </div>
-                <span className="text-white">$1,234,567</span>
+                <span className="text-white">${market_cap.toLocaleString()}</span>
               </div>
               <div className="flex justify-between items-center">
                 <div className="flex items-center space-x-2">
                   <span className="text-gray-400">24h Volume</span>
                   <Tooltip content="Total trading volume in the last 24 hours" />
                 </div>
-                <span className="text-white">$345,678</span>
+                <span className="text-white">${volume_24h.toLocaleString()}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-400">Holders</span>
-                <span className="text-white">1,234</span>
+                <span className="text-white">{holders_count.toLocaleString()}</span>
               </div>
             </div>
           </div>
@@ -97,98 +141,4 @@ const TokenAnalysis = ({ analysis, onAskMore }) => {
               <h4 className="text-rugai-green font-semibold">Liquidity Status</h4>
               <Tooltip content="Information about locked liquidity, which helps prevent rug pulls" />
             </div>
-            <div className="space-y-2">
-              <SecurityIndicator 
-                status={analysis.liquidityLock ? 'safe' : 'danger'}
-                message={analysis.liquidityLock ? 'Liquidity is locked' : 'Liquidity is not locked - High Risk'}
-                score={analysis.liquidityLock ? 90 : 30}
-              />
-              <div className="flex justify-between">
-                <span className="text-gray-400">Lock Duration</span>
-                <span className="text-white">365 days</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-rugai-gray-light p-4 rounded-lg">
-          <div className="flex items-center space-x-2 mb-3">
-            <UserGroupIcon className="h-5 w-5 text-rugai-green" />
-            <h4 className="text-rugai-green font-semibold">Top Holders Analysis</h4>
-            <Tooltip content="Distribution of token ownership among top wallet addresses" />
-          </div>
-          <div className="space-y-2">
-            <SecurityIndicator 
-              status={analysis.devHoldings < 20 ? 'safe' : 'warning'}
-              message={`Developer holds ${analysis.devHoldings}% of total supply`}
-              score={100 - analysis.devHoldings}
-            />
-            <div className="mt-3 space-y-2">
-              {[1, 2, 3].map(i => (
-                <div key={i} className="flex justify-between">
-                  <span className="text-gray-400">Wallet {i}</span>
-                  <span className="text-white">{Math.floor(Math.random() * 15)}%</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <motion.button
-          onClick={onAskMore}
-          className="w-full bg-rugai-green/20 hover:bg-rugai-green/30 text-rugai-green p-3 rounded-lg flex items-center justify-center space-x-2 transition-colors duration-200"
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-        >
-          <QuestionMarkCircleIcon className="h-5 w-5" />
-          <span>Ask More About This Token</span>
-        </motion.button>
-
-        <div className="bg-rugai-gray-light p-4 rounded-lg">
-          <h4 className="text-rugai-green font-semibold mb-3">Recent Transactions</h4>
-          <div className="space-y-3">
-            {analysis.transactions.map((tx, index) => (
-              <SecurityIndicator 
-                key={index}
-                status={tx.risk}
-                message={tx.message}
-              />
-            ))}
-          </div>
-        </div>
-
-        <div className="bg-rugai-gray-light p-4 rounded-lg">
-          <h4 className="text-rugai-green font-semibold mb-3">Audit Status</h4>
-          <SecurityIndicator 
-            status={analysis.contractAudited ? 'safe' : 'warning'}
-            message={analysis.contractAudited ? 'Contract is audited' : 'No audit found'}
-            score={analysis.contractAudited ? 100 : 50}
-          />
-          {analysis.contractAudited && (
-            <div className="mt-3">
-              <a 
-                href="#" 
-                className="text-rugai-green hover:text-rugai-green-dark underline"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                View Audit Report
-              </a>
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="mt-6 p-4 rounded-lg bg-rugai-gray-light">
-        <h4 className="text-white font-semibold mb-2">Overall Risk Assessment</h4>
-        <SecurityIndicator 
-          status={analysis.overallRisk}
-          message={analysis.riskMessage}
-          score={riskScore}
-        />
-      </div>
-    </motion.div>
-  );
-};
-
-export default TokenAnalysis;
+           
