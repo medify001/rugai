@@ -142,7 +142,7 @@ function App() {
               animate={{ opacity: 1 }}
               transition={{ delay: 0.3 }}
             >
-              Rug Scanner
+              RUGAI: Your ultimate rug defender! 
             </motion.h2>
             <p className="text-gray-300 max-w-2xl mx-auto">
               RUGAI helps detect potential rug pulls in the Solana ecosystem, specifically focusing on memecoins which are known for high volatility and scam risks.
